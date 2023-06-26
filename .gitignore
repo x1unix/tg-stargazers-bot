@@ -1,6 +1,9 @@
 .vscode
 .idea
 /build
+/tmp
 .swp
 .DS_Store
+*.env
+!example.env
 
