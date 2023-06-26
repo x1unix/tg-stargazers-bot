@@ -17,12 +17,13 @@ func (cfg LogConfig) NewLogger() (*zap.Logger, error) {
 	logCfg := zap.NewProductionConfig()
 	logCfg.Development = cfg.Environment != ProdEnvironment
 	logCfg.Level = zap.NewAtomicLevelAt(cfg.Level)
-	logCfg.Encoding = cfg.Format
 
 	switch cfg.Format {
 	case "", "json":
+		logCfg.Encoding = "json"
 		logCfg.EncoderConfig = zap.NewProductionEncoderConfig()
-	case "text":
+	case "text", "console":
+		logCfg.Encoding = "console"
 		logCfg.EncoderConfig = zap.NewDevelopmentEncoderConfig()
 	default:
 		return nil, fmt.Errorf("unsupported log format %q", cfg.Format)
