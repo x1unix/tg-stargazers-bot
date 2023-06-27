@@ -4,43 +4,23 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/pflag"
+	"github.com/x1unix/tg-stargazers-bot/internal/app"
 	"github.com/x1unix/tg-stargazers-bot/internal/config"
+	"go.uber.org/zap"
 )
 
-type startupParams struct {
-	envFile string
-}
-
 func main() {
-	var params startupParams
-	pflag.StringVarP(&params.envFile, "env-file", "f", "", "Environment file to load (.env)")
-	pflag.Parse()
+	ctx, cancelFn := config.NewApplicationContext()
+	defer cancelFn()
 
-	if err := mainErr(params); err != nil {
+	svc, err := app.BuildService()
+	if err != nil {
 		die("Error:", err)
 	}
-}
 
-func mainErr(params startupParams) error {
-	if params.envFile != "" {
-		if err := config.LoadEnvFile(params.envFile); err != nil {
-			return err
-		}
+	if err := svc.Start(ctx); err != nil {
+		zap.L().Fatal("failed to start service", zap.Error(err))
 	}
-
-	cfg, err := config.FromEnv()
-	if err != nil {
-		return fmt.Errorf("failed to load config from environment: %w", err)
-	}
-
-	logger, err := cfg.Log.NewLogger()
-	if err != nil {
-		return fmt.Errorf("failed to init logger: %w", err)
-	}
-
-	logger.Info("Hello")
-	return nil
 }
 
 func die(args ...any) {

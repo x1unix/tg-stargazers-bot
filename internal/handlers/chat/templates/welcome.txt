@@ -1,0 +1,4 @@
+Welcome to Starbot! ⭐️
+
+This bot allows to track who and when starred your GitHub repository.
+First, you need to authorize the bot on GitHub, so I can provide you list of repos to track.
