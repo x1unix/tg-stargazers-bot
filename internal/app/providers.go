@@ -3,14 +3,15 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/x1unix/tg-stargazers-bot/internal/handlers/chat"
-	"github.com/x1unix/tg-stargazers-bot/internal/services/bot"
 	"time"
 
 	"github.com/google/wire"
 	"github.com/redis/go-redis/v9"
 	"github.com/x1unix/tg-stargazers-bot/internal/config"
+	"github.com/x1unix/tg-stargazers-bot/internal/handlers/chat"
 	"github.com/x1unix/tg-stargazers-bot/internal/repository"
+	"github.com/x1unix/tg-stargazers-bot/internal/services"
+	"github.com/x1unix/tg-stargazers-bot/internal/services/bot"
 	"go.uber.org/zap"
 )
 
@@ -21,6 +22,7 @@ var dependenciesSet = wire.NewSet(
 	provideRedis,
 	provideBotConfig,
 	provideBotEventRouter,
+	provideGitHubService,
 	repository.NewTokenRepository,
 	bot.NewService,
 	NewService,
@@ -40,8 +42,12 @@ func provideBotConfig(cfg *config.Config) config.BotConfig {
 	return cfg.Bot
 }
 
-func provideBotEventRouter() bot.EventHandler {
-	return bot.NewRouter(chat.NewHandlers())
+func provideBotEventRouter(cfg *config.Config, githubSvc *services.GitHubService) bot.EventHandler {
+	return bot.NewRouter(chat.NewHandlers(cfg, githubSvc))
+}
+
+func provideGitHubService(cfg *config.Config) *services.GitHubService {
+	return services.NewGitHubService(cfg.GitHub)
 }
 
 func provideRedis(cfg *config.Config) (*redis.Client, error) {

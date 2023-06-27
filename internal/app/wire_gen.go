@@ -25,11 +25,12 @@ func BuildService() (*Service, error) {
 		return nil, err
 	}
 	botConfig := provideBotConfig(configConfig)
-	botEventHandler := provideBotEventRouter()
-	botService, err := bot.NewService(logger, botConfig, botEventHandler)
+	gitHubService := provideGitHubService(configConfig)
+	eventHandler := provideBotEventRouter(configConfig, gitHubService)
+	service, err := bot.NewService(logger, botConfig, eventHandler)
 	if err != nil {
 		return nil, err
 	}
-	service := NewService(logger, configConfig, botService)
-	return service, nil
+	appService := NewService(logger, configConfig, service)
+	return appService, nil
 }
