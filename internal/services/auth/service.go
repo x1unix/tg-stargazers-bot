@@ -30,7 +30,7 @@ func NewService(log *zap.Logger, cfg config.ResolvedAuthConfig, tokenStore Token
 
 func (svc Service) CreateUserToken(ctx context.Context, subject UserID) (string, error) {
 	claims := NewClaims(subject)
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	signedToken, err := token.SignedString(svc.cfg.JWTPrivateKey)
 	if err != nil {
 		return "", fmt.Errorf("failed to sign token: %w", err)

@@ -68,13 +68,6 @@ func NewRouter(handlers Handlers) *Router {
 	}
 }
 
-func NewRouter2(handlers Handlers) *Router {
-	return &Router{
-		handlers:      handlers,
-		pendingEvents: NewMap[int64, *PendingEvent](),
-	}
-}
-
 func (r Router) HandleBotEvent(ctx context.Context, e *tgbotapi.Update) (tgbotapi.Chattable, error) {
 	event := RoutedEvent{
 		Update: e,
