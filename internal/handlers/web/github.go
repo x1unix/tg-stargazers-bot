@@ -1,6 +1,7 @@
 package web
 
 import (
+	"io"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -16,6 +17,12 @@ func NewGitHubHandler(log *zap.Logger) *GitHubHandler {
 }
 
 func (h GitHubHandler) HandleLogin(c echo.Context) error {
+	code := c.QueryParam("code")
+	if code == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "bad request")
+	}
+
+	h.log.Info("login!", zap.String("code", code))
 	return h.dumpRequest(c)
 }
 
@@ -25,10 +32,15 @@ func (h GitHubHandler) HandleWebhook(c echo.Context) error {
 
 func (h GitHubHandler) dumpRequest(c echo.Context) error {
 	req := c.Request()
-	code := c.QueryParam("code")
-	if code == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "bad request")
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err)
 	}
 
+	defer req.Body.Close()
+	h.log.Debug("request",
+		zap.String("path", req.URL.RawPath),
+		zap.ByteString("body", body),
+		zap.Any("headers", req.Header))
 	return nil
 }

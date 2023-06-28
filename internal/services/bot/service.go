@@ -3,7 +3,6 @@ package bot
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"sync"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -50,27 +49,6 @@ func NewService(
 
 func (svc Service) HandleUpdate(u *tgbotapi.Update) {
 	svc.messages <- u
-}
-
-func (svc Service) UpdateWebHookURL(baseURL string) error {
-	webhookUrl, err := url.JoinPath(baseURL, svc.cfg.WebHookURLPath)
-	if err != nil {
-		return fmt.Errorf("failed to format webhook URL: %w", err)
-	}
-
-	wh, err := tgbotapi.NewWebhook(webhookUrl)
-	if err != nil {
-		return err
-	}
-
-	_, err = svc.bot.Request(wh)
-	if err != nil {
-		return err
-	}
-
-	svc.log.Info("bot webhook URL was updated successfully",
-		zap.String("webhook_url", webhookUrl))
-	return nil
 }
 
 func (svc Service) StartConsumer(ctx context.Context) {

@@ -11,15 +11,33 @@ var (
 	_ EventHandler = (*Router)(nil)
 )
 
+type ChatID = int64
+
+type userEventType = int
+
+const (
+	userJoinEvent userEventType = iota
+	userLeftEvent
+)
+
 type RouteEventResult struct {
 	Message            tgbotapi.Chattable
 	NextMessageHandler RoutedEventHandler
 }
 
 type RoutedEvent struct {
-	ChatID int64
+	ChatID ChatID
 
 	*tgbotapi.Update
+}
+
+// ChatLifecycleHandler handles bot start and stop events.
+type ChatLifecycleHandler interface {
+	// HandleUserJoin triggered when user creates bot chat.
+	HandleUserJoin(ctx context.Context, e RoutedEvent) (*RouteEventResult, error)
+
+	// HandleUserLeave triggered when user blocks the bot and leaves the chat.
+	HandleUserLeave(ctx context.Context, e RoutedEvent) error
 }
 
 // RoutedEventHandler handles messages from Telegram bot user
@@ -28,8 +46,9 @@ type RoutedEventHandler interface {
 }
 
 type Handlers struct {
-	Commands map[string]RoutedEventHandler
-	Default  RoutedEventHandler
+	Commands         map[string]RoutedEventHandler
+	Default          RoutedEventHandler
+	LifecycleHandler ChatLifecycleHandler
 }
 
 type PendingEvent struct {
@@ -42,6 +61,20 @@ type Router struct {
 	pendingEvents Map[int64, *PendingEvent]
 }
 
+func NewRouter(handlers Handlers) *Router {
+	return &Router{
+		handlers:      handlers,
+		pendingEvents: NewMap[int64, *PendingEvent](),
+	}
+}
+
+func NewRouter2(handlers Handlers) *Router {
+	return &Router{
+		handlers:      handlers,
+		pendingEvents: NewMap[int64, *PendingEvent](),
+	}
+}
+
 func (r Router) HandleBotEvent(ctx context.Context, e *tgbotapi.Update) (tgbotapi.Chattable, error) {
 	event := RoutedEvent{
 		Update: e,
@@ -49,6 +82,18 @@ func (r Router) HandleBotEvent(ctx context.Context, e *tgbotapi.Update) (tgbotap
 
 	if chat := e.FromChat(); chat != nil {
 		event.ChatID = chat.ID
+	}
+
+	if chatEvent, ok := isChatLifecycleEvent(e); ok {
+		switch chatEvent {
+		case userJoinEvent:
+			result, err := r.handlers.LifecycleHandler.HandleUserJoin(ctx, event)
+			r.handleResult(result, e)
+			return result.Message, err
+		case userLeftEvent:
+			r.removePendingEvents(e)
+			return nil, r.handlers.LifecycleHandler.HandleUserLeave(ctx, event)
+		}
 	}
 
 	handler, err := r.getHandler(e)
@@ -61,16 +106,20 @@ func (r Router) HandleBotEvent(ctx context.Context, e *tgbotapi.Update) (tgbotap
 		return nil, err
 	}
 
-	if result.NextMessageHandler != nil {
-		r.setPendingEvent(e, &PendingEvent{
-			PreviousEvent: e,
+	r.handleResult(result, e)
+	return result.Message, nil
+}
+
+func (r Router) handleResult(result *RouteEventResult, u *tgbotapi.Update) {
+	if result != nil && result.NextMessageHandler != nil {
+		r.setPendingEvent(u, &PendingEvent{
+			PreviousEvent: u,
 			NextHandler:   result.NextMessageHandler,
 		})
-	} else {
-		r.removePendingEvents(e)
+		return
 	}
 
-	return result.Message, nil
+	r.removePendingEvents(u)
 }
 
 func (r Router) getHandler(e *tgbotapi.Update) (RoutedEventHandler, error) {
@@ -128,13 +177,6 @@ func (r Router) removePendingEvents(e *tgbotapi.Update) {
 	r.pendingEvents.Delete(chat.ID)
 }
 
-func NewRouter(handlers Handlers) *Router {
-	return &Router{
-		handlers:      handlers,
-		pendingEvents: NewMap[int64, *PendingEvent](),
-	}
-}
-
 func commandFromMessage(u *tgbotapi.Update) (string, bool) {
 	if u.Message == nil {
 		return "", false
@@ -146,4 +188,20 @@ func commandFromMessage(u *tgbotapi.Update) (string, bool) {
 	}
 
 	return msg[1:], msg[0] == '/'
+}
+
+func isChatLifecycleEvent(u *tgbotapi.Update) (userEventType, bool) {
+	if u.Message == nil {
+		return -1, false
+	}
+
+	if u.Message.NewChatMembers != nil {
+		return userJoinEvent, true
+	}
+
+	if u.Message.LeftChatMember != nil {
+		return userLeftEvent, true
+	}
+
+	return -1, false
 }

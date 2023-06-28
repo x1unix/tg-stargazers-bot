@@ -23,7 +23,7 @@ func NewStartCommandHandler(cfg config.HTTPConfig, githubSvc *services.GitHubSer
 }
 
 func (s StartCommandHandler) HandleBotEvent(_ context.Context, e bot.RoutedEvent) (*bot.RouteEventResult, error) {
-	redirectUrl := s.githubSvc.GetAuthURL()
+	redirectUrl := s.githubSvc.GetAuthURL(s.cfg.BaseURL.String())
 
 	msg := tgbotapi.NewMessage(e.FromChat().ID, string(welcomeMessage))
 	msg.ReplyMarkup = tgbotapi.InlineKeyboardMarkup{

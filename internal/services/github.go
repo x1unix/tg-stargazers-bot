@@ -13,7 +13,9 @@ func NewGitHubService(cfg config.GitHubConfig) *GitHubService {
 	return &GitHubService{cfg: cfg}
 }
 
-func (svc GitHubService) GetAuthURL() string {
-	return fmt.Sprintf("https://github.com/login/oauth/authorize?client_id=%s&scope=repo",
-		svc.cfg.ClientID)
+func (svc GitHubService) GetAuthURL(redirectUri string) string {
+	return fmt.Sprintf(
+		"https://github.com/login/oauth/authorize?client_id=%s&scope=repo",
+		svc.cfg.ClientID,
+	)
 }

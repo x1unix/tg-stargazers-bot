@@ -12,6 +12,10 @@ const (
 
 type Environment uint
 
+func (env Environment) IsProduction() bool {
+	return env == ProdEnvironment
+}
+
 func (e *Environment) UnmarshalText(text []byte) error {
 	src := string(bytes.ToLower(bytes.TrimSpace(text)))
 	unquoted, err := strconv.Unquote(src)

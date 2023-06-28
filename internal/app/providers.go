@@ -11,6 +11,7 @@ import (
 	"github.com/x1unix/tg-stargazers-bot/internal/handlers/chat"
 	"github.com/x1unix/tg-stargazers-bot/internal/repository"
 	"github.com/x1unix/tg-stargazers-bot/internal/services"
+	"github.com/x1unix/tg-stargazers-bot/internal/services/auth"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/bot"
 	"go.uber.org/zap"
 )
@@ -21,11 +22,15 @@ var dependenciesSet = wire.NewSet(
 	provideLogger,
 	provideRedis,
 	provideBotConfig,
-	provideBotEventRouter,
+	provideAuthConfig,
 	provideGitHubService,
 	repository.NewTokenRepository,
+	auth.NewService,
 	bot.NewService,
+	services.NewEventRouter,
+	chat.NewHandlers,
 	NewService,
+	wire.Bind(new(auth.TokenStorage), new(repository.TokenRepository)),
 )
 
 func provideLogger(cfg *config.Config) (*zap.Logger, error) {
@@ -42,8 +47,13 @@ func provideBotConfig(cfg *config.Config) config.BotConfig {
 	return cfg.Bot
 }
 
-func provideBotEventRouter(cfg *config.Config, githubSvc *services.GitHubService) bot.EventHandler {
-	return bot.NewRouter(chat.NewHandlers(cfg, githubSvc))
+func provideAuthConfig(cfg *config.Config) (config.ResolvedAuthConfig, error) {
+	authCfg, err := cfg.Auth.ResolvedAuthConfig()
+	if err != nil {
+		return config.ResolvedAuthConfig{}, nil
+	}
+
+	return *authCfg, nil
 }
 
 func provideGitHubService(cfg *config.Config) *services.GitHubService {
@@ -60,7 +70,7 @@ func provideRedis(cfg *config.Config) (*redis.Client, error) {
 	defer cancelFn()
 
 	client := redis.NewClient(opts)
-	if err := client.Ping(ctx); err != nil {
+	if err := client.Ping(ctx).Err(); err != nil {
 		return nil, fmt.Errorf("failed to ping Redis: %w", err)
 	}
 

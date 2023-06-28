@@ -8,6 +8,10 @@ package app
 
 import (
 	"github.com/x1unix/tg-stargazers-bot/internal/config"
+	"github.com/x1unix/tg-stargazers-bot/internal/handlers/chat"
+	"github.com/x1unix/tg-stargazers-bot/internal/repository"
+	"github.com/x1unix/tg-stargazers-bot/internal/services"
+	"github.com/x1unix/tg-stargazers-bot/internal/services/auth"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/bot"
 )
 
@@ -26,11 +30,22 @@ func BuildService() (*Service, error) {
 	}
 	botConfig := provideBotConfig(configConfig)
 	gitHubService := provideGitHubService(configConfig)
-	eventHandler := provideBotEventRouter(configConfig, gitHubService)
+	handlers := chat.NewHandlers(configConfig, gitHubService)
+	eventHandler := services.NewEventRouter(handlers)
 	service, err := bot.NewService(logger, botConfig, eventHandler)
 	if err != nil {
 		return nil, err
 	}
-	appService := NewService(logger, configConfig, service)
+	resolvedAuthConfig, err := provideAuthConfig(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	client, err := provideRedis(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	tokenRepository := repository.NewTokenRepository(client)
+	authService := auth.NewService(logger, resolvedAuthConfig, tokenRepository)
+	appService := NewService(logger, configConfig, service, authService)
 	return appService, nil
 }

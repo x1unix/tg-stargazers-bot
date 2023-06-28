@@ -4,6 +4,8 @@
 /tmp
 .swp
 .DS_Store
+*.key
+*.pub
 *.env
 !example.env
 
