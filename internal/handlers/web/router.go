@@ -1,12 +1,12 @@
 package web
 
 import (
-	"github.com/x1unix/tg-stargazers-bot/internal/services/auth"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/x1unix/tg-stargazers-bot/internal/config"
+	"github.com/x1unix/tg-stargazers-bot/internal/services/auth"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/bot"
 	"go.uber.org/zap"
 )
