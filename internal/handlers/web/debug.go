@@ -44,3 +44,8 @@ func (h DebugHandler) HandleNewToken(c echo.Context) error {
 		"auth_url": authUrl.String(),
 	})
 }
+
+func (h DebugHandler) HandleTestToken(c echo.Context) error {
+	user := getUserInfo(c)
+	return c.JSON(http.StatusOK, user)
+}
