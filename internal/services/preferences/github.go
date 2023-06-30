@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/google/go-github/v53/github"
+	"github.com/samber/lo"
 	"github.com/x1unix/tg-stargazers-bot/internal/config"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/bot"
+	"golang.org/x/oauth2"
 )
 
 var ErrMissingToken = errors.New("missing GitHub token")
@@ -41,10 +44,48 @@ func (svc GitHubService) BuildAuthURL(redirectUri *url.URL) string {
 	return newUrl.String()
 }
 
-func (svc GitHubService) SetGitHubToken(ctx context.Context, owner bot.ChatID, token string) error {
-	if err := svc.store.SetGitHubToken(ctx, owner, token); err != nil {
+// FetchUserToken fetches user oauth code using verification code and persists it.
+func (svc GitHubService) FetchUserToken(ctx context.Context, owner bot.ChatID, verificationCode string) error {
+	cfg := svc.cfg.NewOAuthConfig()
+	t, err := cfg.Exchange(ctx, verificationCode)
+	if err != nil {
+		return fmt.Errorf("failed to obtain OAuth token: %w", err)
+	}
+
+	if err := svc.store.SetGitHubToken(ctx, owner, t.AccessToken); err != nil {
 		return fmt.Errorf("failed to save token: %w", err)
 	}
 
 	return nil
+}
+
+func (svc GitHubService) getOAuthToken(ctx context.Context, uid bot.ChatID) (*oauth2.Token, error) {
+	accessToken, err := svc.store.GetGitHubToken(ctx, uid)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get github auth code: %w", err)
+	}
+
+	return &oauth2.Token{
+		AccessToken: accessToken,
+	}, nil
+}
+
+func (svc GitHubService) GetUntrackedRepositories(ctx context.Context, uid bot.ChatID) ([]string, error) {
+	token, err := svc.getOAuthToken(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	tokenSource := oauth2.StaticTokenSource(token)
+	oauthClient := oauth2.NewClient(ctx, tokenSource)
+	client := github.NewClient(oauthClient)
+	repos, _, err := client.Repositories.List(ctx, "", &github.RepositoryListOptions{})
+	if err != nil {
+		//github.ErrorResponse
+		return nil, err
+	}
+
+	return lo.Map(repos, func(r *github.Repository, _ int) string {
+		return *r.FullName
+	}), nil
 }

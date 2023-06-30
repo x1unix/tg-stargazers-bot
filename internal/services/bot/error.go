@@ -24,7 +24,7 @@ func (err ErrorResponse) Error() string {
 		return err.msg
 	}
 
-	return fmt.Sprint(err.msg, err.err.Error())
+	return fmt.Sprint(err.msg, ": ", err.err.Error())
 }
 
 func IsErrorResponse(err error) (*ErrorResponse, bool) {

@@ -19,6 +19,7 @@ func NewHandlers(
 		LifecycleHandler: NewLifecycleHandler(log),
 		Commands: bot.CommandHandlers{
 			"auth": NewAuthCommandHandler(logger, cfg.HTTP, githubSvc, tokenProvider),
+			"add":  NewAddRepoCommand(githubSvc),
 		},
 	}
 }

@@ -15,7 +15,6 @@ func (h defaultCommandHandler) HandleBotEvent(_ context.Context, e RoutedEvent) 
 		"😕 Sorry, I didn't get that.\n\n"+
 			"Use /help command to get a list of available commands",
 	)
-	msg.ParseMode = ParseModeMarkdown
 	return &RouteEventResult{
 		Message: msg,
 	}, nil

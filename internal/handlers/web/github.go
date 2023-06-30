@@ -52,7 +52,7 @@ func (h GitHubHandler) HandleLogin(c echo.Context) error {
 	)
 
 	ctx := c.Request().Context()
-	if err := h.githubSvc.SetGitHubToken(ctx, user.UserID, code); err != nil {
+	if err := h.githubSvc.FetchUserToken(ctx, user.UserID, code); err != nil {
 		h.notificationSvc.NotifyAuthFailure(user.UserID, feedback.ErrTokenSaveError)
 		return fmt.Errorf("failed to save GitHub token: %w", err)
 	}

@@ -34,10 +34,11 @@ var dependenciesSet = wire.NewSet(
 	feedback.NewNotificationsService,
 	chat.NewHandlers,
 	NewService,
+	wire.Bind(new(bot.MessageSender), new(*bot.Service)),
 	wire.Bind(new(chat.TokenProvider), new(*auth.Service)),
+	wire.Bind(new(chat.RepositoryManager), new(*preferences.GitHubService)),
 	wire.Bind(new(auth.TokenStorage), new(repository.TokenRepository)),
 	wire.Bind(new(preferences.Store), new(repository.PreferencesRepository)),
-	wire.Bind(new(bot.MessageSender), new(*bot.Service)),
 )
 
 func provideLogger(cfg *config.Config) (*zap.Logger, error) {
