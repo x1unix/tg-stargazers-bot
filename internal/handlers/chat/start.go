@@ -5,38 +5,25 @@ import (
 	_ "embed"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/x1unix/tg-stargazers-bot/internal/config"
-	"github.com/x1unix/tg-stargazers-bot/internal/services"
+	"github.com/x1unix/tg-stargazers-bot/internal/services/auth"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/bot"
 )
 
 //go:embed templates/welcome.txt
 var welcomeMessage []byte
 
-type StartCommandHandler struct {
-	cfg       config.HTTPConfig
-	githubSvc *services.GitHubService
+type TokenProvider interface {
+	CreateUserToken(ctx context.Context, subject auth.UserID) (string, error)
 }
 
-func NewStartCommandHandler(cfg config.HTTPConfig, githubSvc *services.GitHubService) *StartCommandHandler {
-	return &StartCommandHandler{cfg: cfg, githubSvc: githubSvc}
+type StartCommandHandler struct{}
+
+func NewStartCommandHandler() StartCommandHandler {
+	return StartCommandHandler{}
 }
 
 func (s StartCommandHandler) HandleBotEvent(_ context.Context, e bot.RoutedEvent) (*bot.RouteEventResult, error) {
-	redirectUrl := s.githubSvc.GetAuthURL(s.cfg.BaseURL.String())
-
-	msg := tgbotapi.NewMessage(e.FromChat().ID, string(welcomeMessage))
-	msg.ReplyMarkup = tgbotapi.InlineKeyboardMarkup{
-		InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{
-			{
-				{
-					Text: "Authorize Starbot",
-					URL:  &redirectUrl,
-				},
-			},
-		},
-	}
 	return &bot.RouteEventResult{
-		Message: msg,
+		Message: tgbotapi.NewMessage(e.FromChat().ID, string(welcomeMessage)),
 	}, nil
 }

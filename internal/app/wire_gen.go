@@ -13,6 +13,7 @@ import (
 	"github.com/x1unix/tg-stargazers-bot/internal/services"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/auth"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/bot"
+	"github.com/x1unix/tg-stargazers-bot/internal/services/feedback"
 )
 
 // Injectors from wire.go:
@@ -29,23 +30,25 @@ func BuildService() (*Service, error) {
 		return nil, err
 	}
 	botConfig := provideBotConfig(configConfig)
-	gitHubService := provideGitHubService(configConfig)
-	handlers := chat.NewHandlers(configConfig, gitHubService)
-	eventHandler := services.NewEventRouter(handlers)
-	service, err := bot.NewService(logger, botConfig, eventHandler)
+	cmdable, err := provideRedis(configConfig)
 	if err != nil {
 		return nil, err
 	}
+	preferencesRepository := repository.NewPreferencesRepository(cmdable)
+	gitHubService := provideGitHubService(configConfig, preferencesRepository)
 	resolvedAuthConfig, err := provideAuthConfig(configConfig)
 	if err != nil {
 		return nil, err
 	}
-	client, err := provideRedis(configConfig)
+	tokenRepository := repository.NewTokenRepository(cmdable)
+	service := auth.NewService(logger, resolvedAuthConfig, tokenRepository)
+	handlers := chat.NewHandlers(logger, configConfig, gitHubService, service)
+	eventHandler := services.NewEventRouter(handlers)
+	botService, err := bot.NewService(logger, botConfig, eventHandler)
 	if err != nil {
 		return nil, err
 	}
-	tokenRepository := repository.NewTokenRepository(client)
-	authService := auth.NewService(logger, resolvedAuthConfig, tokenRepository)
-	appService := NewService(logger, configConfig, service, authService)
+	notificationsService := feedback.NewNotificationsService(botService)
+	appService := NewService(logger, configConfig, botService, service, gitHubService, notificationsService)
 	return appService, nil
 }

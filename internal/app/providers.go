@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"github.com/x1unix/tg-stargazers-bot/internal/services/feedback"
 	"time"
 
 	"github.com/google/wire"
@@ -13,6 +14,7 @@ import (
 	"github.com/x1unix/tg-stargazers-bot/internal/services"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/auth"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/bot"
+	"github.com/x1unix/tg-stargazers-bot/internal/services/preferences"
 	"go.uber.org/zap"
 )
 
@@ -24,13 +26,18 @@ var dependenciesSet = wire.NewSet(
 	provideBotConfig,
 	provideAuthConfig,
 	provideGitHubService,
+	repository.NewPreferencesRepository,
 	repository.NewTokenRepository,
 	auth.NewService,
 	bot.NewService,
 	services.NewEventRouter,
+	feedback.NewNotificationsService,
 	chat.NewHandlers,
 	NewService,
+	wire.Bind(new(chat.TokenProvider), new(*auth.Service)),
 	wire.Bind(new(auth.TokenStorage), new(repository.TokenRepository)),
+	wire.Bind(new(preferences.Store), new(repository.PreferencesRepository)),
+	wire.Bind(new(bot.MessageSender), new(*bot.Service)),
 )
 
 func provideLogger(cfg *config.Config) (*zap.Logger, error) {
@@ -56,11 +63,11 @@ func provideAuthConfig(cfg *config.Config) (config.ResolvedAuthConfig, error) {
 	return *authCfg, nil
 }
 
-func provideGitHubService(cfg *config.Config) *services.GitHubService {
-	return services.NewGitHubService(cfg.GitHub)
+func provideGitHubService(cfg *config.Config, store preferences.Store) *preferences.GitHubService {
+	return preferences.NewGitHubService(cfg.GitHub, store)
 }
 
-func provideRedis(cfg *config.Config) (*redis.Client, error) {
+func provideRedis(cfg *config.Config) (redis.Cmdable, error) {
 	opts, err := redis.ParseURL(cfg.Redis.DSN)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse Redis DSN: %w", err)

@@ -14,10 +14,10 @@ const (
 var _ auth.TokenStorage = (*TokenRepository)(nil)
 
 type TokenRepository struct {
-	redis *redis.Client
+	redis redis.Cmdable
 }
 
-func NewTokenRepository(redis *redis.Client) TokenRepository {
+func NewTokenRepository(redis redis.Cmdable) TokenRepository {
 	return TokenRepository{redis: redis}
 }
 

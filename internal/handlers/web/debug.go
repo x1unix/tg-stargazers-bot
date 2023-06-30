@@ -46,6 +46,10 @@ func (h DebugHandler) HandleNewToken(c echo.Context) error {
 }
 
 func (h DebugHandler) HandleTestToken(c echo.Context) error {
-	user := getUserInfo(c)
+	user, err := getUserInfo(c)
+	if err != nil {
+		return err
+	}
+
 	return c.JSON(http.StatusOK, user)
 }

@@ -2,6 +2,7 @@ package config
 
 import (
 	"net/url"
+	"path/filepath"
 )
 
 type Config struct {
@@ -14,8 +15,13 @@ type Config struct {
 }
 
 type HTTPConfig struct {
-	ListenAddress string  `envconfig:"HTTP_LISTEN" default:":8080"`
-	BaseURL       url.URL `envconfig:"HTTP_BASE_URL" required:"true"`
+	ListenAddress string   `envconfig:"HTTP_LISTEN" default:":8080"`
+	StaticDir     string   `envconfig:"HTTP_STATIC_DIR" default:"public"`
+	BaseURL       *url.URL `envconfig:"HTTP_BASE_URL" required:"true"`
+}
+
+func (cfg HTTPConfig) StaticFilePath(asset string) string {
+	return filepath.Join(cfg.StaticDir, asset)
 }
 
 type RedisConfig struct {

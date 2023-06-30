@@ -10,6 +10,8 @@ import (
 	"go.uber.org/zap"
 )
 
+var _ MessageSender = (*Service)(nil)
+
 // EventHandler handles messages from Telegram bot user
 type EventHandler interface {
 	HandleBotEvent(ctx context.Context, e *tgbotapi.Update) (tgbotapi.Chattable, error)
@@ -83,7 +85,22 @@ func (svc Service) StartConsumer(ctx context.Context) {
 	svc.log.Info("stopped event consumers")
 }
 
+func (svc Service) SendMessage(chatID ChatID, message string, opts ...MessageOption) {
+	msg := tgbotapi.NewMessage(chatID, message)
+	applyMessageOpts(&msg, opts)
+
+	_, err := svc.bot.Send(msg)
+	if err != nil {
+		svc.log.Error("failed to deliver message from bot",
+			zap.Int64("chat_id", msg.ChatID),
+			zap.String("body", msg.Text),
+			zap.Error(err),
+		)
+	}
+}
+
 func (svc Service) handleMessage(ctx context.Context, u *tgbotapi.Update) {
+	chatID := u.FromChat().ID
 	svc.log.Debug("received bot event", zap.Any("update", u))
 	response, err := svc.handler.HandleBotEvent(ctx, u)
 	if err != nil {
@@ -97,7 +114,7 @@ func (svc Service) handleMessage(ctx context.Context, u *tgbotapi.Update) {
 			return
 		}
 
-		response = tgbotapi.NewMessage(u.FromChat().ID, errRsp.Error())
+		response = tgbotapi.NewMessage(chatID, errRsp.Error())
 	}
 
 	if response == nil {
@@ -106,6 +123,17 @@ func (svc Service) handleMessage(ctx context.Context, u *tgbotapi.Update) {
 
 	_, err = svc.bot.Send(response)
 	if err != nil {
-		svc.log.Error("failed to send event response", zap.Error(err))
+		_, _ = svc.bot.Send(newInternalErrorMessage(chatID, err))
 	}
+}
+
+func newInternalErrorMessage(id ChatID, err error) tgbotapi.MessageConfig {
+	str := fmt.Sprintf(
+		"Unexpected error from Telegram API, please report this to developer:\n\n```\n%s\n```",
+		err.Error(),
+	)
+
+	msg := tgbotapi.NewMessage(id, str)
+	msg.ParseMode = ParseModeMarkdown
+	return msg
 }

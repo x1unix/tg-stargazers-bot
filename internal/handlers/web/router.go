@@ -1,6 +1,7 @@
 package web
 
 import (
+	"github.com/x1unix/tg-stargazers-bot/internal/services/feedback"
 	"net/http"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -10,6 +11,7 @@ import (
 	"github.com/x1unix/tg-stargazers-bot/internal/config"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/auth"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/bot"
+	"github.com/x1unix/tg-stargazers-bot/internal/services/preferences"
 	"go.uber.org/zap"
 )
 
@@ -17,6 +19,8 @@ const (
 	githubAuthPath      = "/auth/github"
 	githubWebHookPath   = "/webhook/github"
 	telegramWebHookPath = "/webhook/telegram"
+
+	tokenQueryParam = "t"
 )
 
 type WebhookSecrets struct {
@@ -34,14 +38,17 @@ func NewServer(
 	cfg ServerConfig,
 	botSvc *bot.Service,
 	authSvc *auth.Service,
+	githubSvc *preferences.GitHubService,
+	notificationSvc *feedback.NotificationsService,
+
 ) *http.Server {
 	logger := zap.L().Named("web")
 	telegramHandler := NewTelegramHandler(logger, cfg.WebhookSecrets, botSvc)
-	githubHandler := NewGitHubHandler(logger)
+	githubHandler := NewGitHubHandler(logger, cfg.HTTPConfig, githubSvc, notificationSvc)
 
 	signParams := authSvc.JWTSignParams()
 	authMiddleware := echojwt.WithConfig(echojwt.Config{
-		TokenLookup:   "query:t",
+		TokenLookup:   "query:" + tokenQueryParam,
 		SigningMethod: signParams.Method,
 		SigningKey:    signParams.SigningKey,
 		ErrorHandler: func(c echo.Context, err error) error {

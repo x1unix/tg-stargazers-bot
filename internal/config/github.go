@@ -1,5 +1,8 @@
 package config
 
+import "net/url"
+
 type GitHubConfig struct {
-	ClientID string `envconfig:"GITHUB_CLIENT_ID" required:"true"`
+	BaseURL  *url.URL `envconfig:"GITHUB_BASE_URL" default:"https://github.com"`
+	ClientID string   `envconfig:"GITHUB_CLIENT_ID" required:"true"`
 }

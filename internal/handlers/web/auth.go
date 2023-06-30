@@ -84,6 +84,11 @@ func requireSecretMiddleware(l *zap.Logger, secret string) echo.MiddlewareFunc {
 	}
 }
 
-func getUserInfo(c echo.Context) userInfo {
-	return c.Get(userInfoKey).(userInfo)
+func getUserInfo(c echo.Context) (userInfo, error) {
+	info, ok := c.Get(userInfoKey).(userInfo)
+	if !ok {
+		return userInfo{}, echo.NewHTTPError(http.StatusInternalServerError, "Missing auth middleware")
+	}
+
+	return info, nil
 }

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Auth Successful</title>
+  <style>
+    body {
+        background: #131415;
+        margin: 0;
+        padding: 0;
+        color: #fff;
+        font: 11pt system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    }
+    button {
+        font: inherit;
+        border: 0;
+        background: #ccc;
+        color: #141314;
+        padding: 10px 15px;
+        border-radius: 4px;
+    }
+    .tada {
+        display: block;
+        font-size: 8em;
+    }
+    .root {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .container {
+        width: 100%;
+        max-width: 240px;
+        padding: 40px;
+        text-align: center;
+    }
+    .descr {
+        margin-bottom: 32px;
+    }
+    .action {
+        display: block;
+        width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="root">
+    <div class="container">
+      <div class="tada">🎉</div>
+      <div class="message">
+        <h1>Success</h1>
+        <p class="descr">You can close this window now.</p>
+        <button class="action" onclick="window.close()">Close</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

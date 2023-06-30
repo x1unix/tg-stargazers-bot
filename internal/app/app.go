@@ -3,28 +3,41 @@ package app
 import (
 	"context"
 	"errors"
+	"github.com/x1unix/tg-stargazers-bot/internal/services/feedback"
 	"net/http"
 
 	"github.com/x1unix/tg-stargazers-bot/internal/config"
 	"github.com/x1unix/tg-stargazers-bot/internal/handlers/web"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/auth"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/bot"
+	"github.com/x1unix/tg-stargazers-bot/internal/services/preferences"
 	"go.uber.org/zap"
 )
 
 type Service struct {
-	log     *zap.Logger
-	cfg     *config.Config
-	botSvc  *bot.Service
-	authSvc *auth.Service
+	log           *zap.Logger
+	cfg           *config.Config
+	botSvc        *bot.Service
+	authSvc       *auth.Service
+	githubSvc     *preferences.GitHubService
+	notifications *feedback.NotificationsService
 }
 
-func NewService(log *zap.Logger, cfg *config.Config, botSvc *bot.Service, authSvc *auth.Service) *Service {
+func NewService(
+	log *zap.Logger,
+	cfg *config.Config,
+	botSvc *bot.Service,
+	authSvc *auth.Service,
+	githubSvc *preferences.GitHubService,
+	notifications *feedback.NotificationsService,
+) *Service {
 	return &Service{
-		log:     log,
-		cfg:     cfg,
-		botSvc:  botSvc,
-		authSvc: authSvc,
+		log:           log,
+		cfg:           cfg,
+		botSvc:        botSvc,
+		authSvc:       authSvc,
+		githubSvc:     githubSvc,
+		notifications: notifications,
 	}
 }
 
@@ -40,7 +53,13 @@ func (svc Service) Start(ctx context.Context) error {
 		},
 	}
 
-	srv := web.NewServer(srvCfg, svc.botSvc, svc.authSvc)
+	srv := web.NewServer(
+		srvCfg,
+		svc.botSvc,
+		svc.authSvc,
+		svc.githubSvc,
+		svc.notifications,
+	)
 	go svc.botSvc.StartConsumer(ctx)
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {

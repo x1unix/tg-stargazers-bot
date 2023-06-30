@@ -19,7 +19,7 @@ type TelegramHandler struct {
 }
 
 func NewTelegramHandler(log *zap.Logger, secrets WebhookSecrets, botSvc *bot.Service) TelegramHandler {
-	return TelegramHandler{log: log, botSvc: botSvc}
+	return TelegramHandler{log: log, botSvc: botSvc, secrets: secrets}
 }
 
 // HandleTelegramWebhook handles bot webhook calls from Telegram.

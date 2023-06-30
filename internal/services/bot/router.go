@@ -45,9 +45,37 @@ type RoutedEventHandler interface {
 	HandleBotEvent(ctx context.Context, e RoutedEvent) (*RouteEventResult, error)
 }
 
+type CommandHandlers = map[string]CommandHandler
+
+// CommandHandler implements bot command handler.
+type CommandHandler interface {
+	RoutedEventHandler
+
+	// CommandDescription returns bot command description for help.
+	CommandDescription() string
+}
+
+// Handlers contains Telegram bot events and commands handling config.
 type Handlers struct {
-	Commands         map[string]RoutedEventHandler
-	Default          RoutedEventHandler
+	// Commands is key-value pair of command name and handler.
+	Commands CommandHandlers
+
+	// Help is help command handler.
+	//
+	// Use this to override default help message.
+	Help RoutedEventHandler
+
+	// Start is start command handler.
+	//
+	// This is a mandatory field.
+	Start RoutedEventHandler
+
+	// Default is default event handler.
+	//
+	// Handler is called when no matching command found.
+	Default RoutedEventHandler
+
+	// LifecycleHandler handles chat lifecycle.
 	LifecycleHandler ChatLifecycleHandler
 }
 
@@ -63,7 +91,7 @@ type Router struct {
 
 func NewRouter(handlers Handlers) *Router {
 	return &Router{
-		handlers:      handlers,
+		handlers:      applyDefaults(handlers),
 		pendingEvents: NewMap[int64, *PendingEvent](),
 	}
 }
@@ -126,6 +154,15 @@ func (r Router) getHandler(e *tgbotapi.Update) (RoutedEventHandler, error) {
 		return r.handlers.Default, nil
 	}
 
+	switch cmd {
+	case "":
+		return r.handlers.Default, nil
+	case "start":
+		return r.handlers.Start, nil
+	case "help":
+		return r.handlers.Help, nil
+	}
+
 	if cmd == "" {
 		return r.handlers.Default, nil
 	}
@@ -168,6 +205,29 @@ func (r Router) removePendingEvents(e *tgbotapi.Update) {
 	}
 
 	r.pendingEvents.Delete(chat.ID)
+}
+
+func (r Router) getHelp(e *RoutedEvent) (*RouteEventResult, error) {
+	sb := strings.Builder{}
+	sb.WriteString("Here is a list of available commands:\n\n")
+	for cmdName, cmd := range r.handlers.Commands {
+		if cmdName == "start" {
+			continue
+		}
+
+		sb.WriteString("* ")
+		sb.WriteRune('/')
+		sb.WriteString(cmdName)
+		sb.WriteString(" - ")
+		sb.WriteString(cmd.CommandDescription())
+		sb.WriteRune('\n')
+	}
+
+	msg := tgbotapi.NewMessage(e.ChatID, sb.String())
+	msg.ParseMode = ParseModeMarkdown
+	return &RouteEventResult{
+		Message: msg,
+	}, nil
 }
 
 func commandFromMessage(u *tgbotapi.Update) (string, bool) {
