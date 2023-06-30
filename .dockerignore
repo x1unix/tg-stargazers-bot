@@ -1,0 +1,7 @@
+*.env
+*.key
+*.pub
+*.md
+.git
+.vscode
+.idea
