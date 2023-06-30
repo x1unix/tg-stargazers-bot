@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/auth"
@@ -21,12 +22,22 @@ func NewTokenRepository(redis redis.Cmdable) TokenRepository {
 	return TokenRepository{redis: redis}
 }
 
-func (t TokenRepository) TokenExists(ctx context.Context, tokenID string, subjectID auth.UserID) (bool, error) {
+func (t TokenRepository) TokenExists(ctx context.Context, token string, subjectID auth.UserID) (bool, error) {
 	key := formatKey(tokenKeyPrefix, subjectID)
-	return t.redis.SIsMember(ctx, key, tokenID).Result()
+	gotToken, err := t.redis.Get(ctx, key).Result()
+	if errors.Is(err, redis.Nil) {
+		return false, nil
+	}
+
+	if err != nil {
+		return false, err
+	}
+
+	ok := token == gotToken
+	return ok, nil
 }
 
-func (t TokenRepository) AddToken(ctx context.Context, tokenID string, subjectID auth.UserID) error {
+func (t TokenRepository) AddToken(ctx context.Context, token string, subjectID auth.UserID) error {
 	key := formatKey(tokenKeyPrefix, subjectID)
-	return t.redis.SAdd(ctx, key, tokenID).Err()
+	return t.redis.Set(ctx, key, token, 0).Err()
 }
