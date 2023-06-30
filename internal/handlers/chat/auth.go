@@ -3,10 +3,9 @@ package chat
 import (
 	"context"
 	_ "embed"
+	"net/url"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/x1unix/tg-stargazers-bot/internal/config"
-	"github.com/x1unix/tg-stargazers-bot/internal/handlers/web"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/bot"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/preferences"
 	"go.uber.org/zap"
@@ -15,9 +14,13 @@ import (
 //go:embed templates/auth.txt
 var authMessage []byte
 
+type CallbackURLBuilder interface {
+	BuildAuthCallbackURL(token string) *url.URL
+}
+
 type AuthCommandHandler struct {
 	log           *zap.Logger
-	cfg           config.HTTPConfig
+	urlBuilder    CallbackURLBuilder
 	githubSvc     *preferences.GitHubService
 	tokenProvider TokenProvider
 }
@@ -28,13 +31,13 @@ func (s AuthCommandHandler) CommandDescription() string {
 
 func NewAuthCommandHandler(
 	log *zap.Logger,
-	cfg config.HTTPConfig,
+	urlBuilder CallbackURLBuilder,
 	githubSvc *preferences.GitHubService,
 	tokenProvider TokenProvider,
 ) *AuthCommandHandler {
 	return &AuthCommandHandler{
 		log:           log,
-		cfg:           cfg,
+		urlBuilder:    urlBuilder,
 		githubSvc:     githubSvc,
 		tokenProvider: tokenProvider,
 	}
@@ -43,8 +46,7 @@ func NewAuthCommandHandler(
 func (s AuthCommandHandler) HandleBotEvent(ctx context.Context, e bot.RoutedEvent) (*bot.RouteEventResult, error) {
 	actorID := e.FromChat().ID
 
-	// TODO: check if token already exists
-	token, err := s.tokenProvider.CreateUserToken(ctx, actorID)
+	token, err := s.tokenProvider.ProvideUserToken(ctx, actorID)
 	if err != nil {
 		s.log.Error("failed to generate jwt token",
 			zap.Int64("uid", actorID),
@@ -54,7 +56,7 @@ func (s AuthCommandHandler) HandleBotEvent(ctx context.Context, e bot.RoutedEven
 		return nil, bot.NewErrorResponse("error occurred, please try again later", nil)
 	}
 
-	callbackUrl := web.BuildAuthCallbackURL(s.cfg.BaseURL, token)
+	callbackUrl := s.urlBuilder.BuildAuthCallbackURL(token)
 	redirectUrl := s.githubSvc.BuildAuthURL(callbackUrl)
 	msg := tgbotapi.NewMessage(e.FromChat().ID, string(authMessage))
 	msg.ReplyMarkup = tgbotapi.InlineKeyboardMarkup{

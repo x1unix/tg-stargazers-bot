@@ -12,17 +12,20 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-// NewClaims returns new JWT token claims
-func NewClaims(subjectID UserID) Claims {
+func NewTokenID() string {
 	// Under the hood, the package never actually returns any error.
-	jwtID, _ := uuid.NewUUID()
+	tokenID, _ := uuid.NewUUID()
+	return tokenID.String()
+}
 
+// NewClaims returns new JWT token claims
+func NewClaims(subjectID UserID, tokenID string) Claims {
 	return Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:   "starbot",
 			Subject:  strconv.FormatInt(subjectID, 10),
 			IssuedAt: jwt.NewNumericDate(time.Now()),
-			ID:       jwtID.String(),
+			ID:       tokenID,
 		},
 	}
 }

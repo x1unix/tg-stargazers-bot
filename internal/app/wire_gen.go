@@ -30,19 +30,21 @@ func BuildService() (*Service, error) {
 		return nil, err
 	}
 	botConfig := provideBotConfig(configConfig)
-	cmdable, err := provideRedis(configConfig)
+	urlBuilder := provideURLBuilder(configConfig)
+	resolvedAuthConfig, err := provideAuthConfig(configConfig)
 	if err != nil {
 		return nil, err
 	}
-	preferencesRepository := repository.NewPreferencesRepository(cmdable)
-	gitHubService := provideGitHubService(configConfig, preferencesRepository)
-	resolvedAuthConfig, err := provideAuthConfig(configConfig)
+	cmdable, err := provideRedis(configConfig)
 	if err != nil {
 		return nil, err
 	}
 	tokenRepository := repository.NewTokenRepository(cmdable)
 	service := auth.NewService(logger, resolvedAuthConfig, tokenRepository)
-	handlers := chat.NewHandlers(logger, configConfig, gitHubService, service)
+	gitHubTokensRepository := repository.NewGitHubTokensRepository(cmdable)
+	hookRepository := repository.NewHookRepository(cmdable)
+	gitHubService := provideGitHubService(configConfig, service, gitHubTokensRepository, hookRepository, urlBuilder)
+	handlers := chat.NewHandlers(logger, urlBuilder, gitHubService, service)
 	eventHandler := services.NewEventRouter(handlers)
 	botService, err := bot.NewService(logger, botConfig, eventHandler)
 	if err != nil {

@@ -5,51 +5,45 @@ import (
 	"errors"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/x1unix/tg-stargazers-bot/internal/services/bot"
+	"github.com/x1unix/tg-stargazers-bot/internal/services/auth"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/preferences"
 )
 
 const (
-	reposKeyPrefix       = "prefs:repos:"
-	githubTokenKeyPrefix = "prefs:token:"
+	githubTokenKeyPrefix = "github:token:"
 )
 
-var _ preferences.Store = (*PreferencesRepository)(nil)
+var _ preferences.GitHubTokenStore = (*GitHubTokensRepository)(nil)
 
-type PreferencesRepository struct {
+type GitHubTokensRepository struct {
 	redis redis.Cmdable
 }
 
-func NewPreferencesRepository(redis redis.Cmdable) PreferencesRepository {
-	return PreferencesRepository{redis: redis}
+func NewGitHubTokensRepository(redis redis.Cmdable) GitHubTokensRepository {
+	return GitHubTokensRepository{redis: redis}
 }
 
-func (r PreferencesRepository) GetGitHubToken(ctx context.Context, owner bot.ChatID) (string, error) {
+func (r GitHubTokensRepository) GetGitHubToken(ctx context.Context, owner auth.UserID) (string, error) {
 	key := formatKey(githubTokenKeyPrefix, owner)
 	val, err := r.redis.Get(ctx, key).Result()
 	if errors.Is(err, redis.Nil) {
 		return "", preferences.ErrMissingToken
 	}
 
-	return val, nil
+	return val, err
 }
 
-func (r PreferencesRepository) SetGitHubToken(ctx context.Context, owner bot.ChatID, token string) error {
+func (r GitHubTokensRepository) SetGitHubToken(ctx context.Context, owner auth.UserID, token string) error {
 	key := formatKey(githubTokenKeyPrefix, owner)
 	return r.redis.Set(ctx, key, token, 0).Err()
 }
 
-func (r PreferencesRepository) GetRepositories(ctx context.Context, owner bot.ChatID) ([]string, error) {
-	key := formatKey(reposKeyPrefix, owner)
-	return r.redis.SMembers(ctx, key).Result()
-}
+func (r GitHubTokensRepository) RemoveGitHubToken(ctx context.Context, owner auth.UserID) error {
+	key := formatKey(githubTokenKeyPrefix, owner)
+	err := r.redis.Del(ctx, key).Err()
+	if errors.Is(err, redis.Nil) {
+		return nil
+	}
 
-func (r PreferencesRepository) AddRepository(ctx context.Context, owner bot.ChatID, repo string) error {
-	key := formatKey(reposKeyPrefix, owner)
-	return r.redis.SAdd(ctx, key, repo).Err()
-}
-
-func (r PreferencesRepository) RemoveRepository(ctx context.Context, owner bot.ChatID, repo string) error {
-	key := formatKey(reposKeyPrefix, owner)
-	return r.redis.SAdd(ctx, key, repo).Err()
+	return err
 }

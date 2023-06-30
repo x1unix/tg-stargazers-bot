@@ -3,17 +3,18 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/x1unix/tg-stargazers-bot/internal/services/feedback"
 	"time"
 
 	"github.com/google/wire"
 	"github.com/redis/go-redis/v9"
 	"github.com/x1unix/tg-stargazers-bot/internal/config"
 	"github.com/x1unix/tg-stargazers-bot/internal/handlers/chat"
+	"github.com/x1unix/tg-stargazers-bot/internal/handlers/web"
 	"github.com/x1unix/tg-stargazers-bot/internal/repository"
 	"github.com/x1unix/tg-stargazers-bot/internal/services"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/auth"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/bot"
+	"github.com/x1unix/tg-stargazers-bot/internal/services/feedback"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/preferences"
 	"go.uber.org/zap"
 )
@@ -26,8 +27,10 @@ var dependenciesSet = wire.NewSet(
 	provideBotConfig,
 	provideAuthConfig,
 	provideGitHubService,
-	repository.NewPreferencesRepository,
+	provideURLBuilder,
+	repository.NewGitHubTokensRepository,
 	repository.NewTokenRepository,
+	repository.NewHookRepository,
 	auth.NewService,
 	bot.NewService,
 	services.NewEventRouter,
@@ -38,7 +41,11 @@ var dependenciesSet = wire.NewSet(
 	wire.Bind(new(chat.TokenProvider), new(*auth.Service)),
 	wire.Bind(new(chat.RepositoryManager), new(*preferences.GitHubService)),
 	wire.Bind(new(auth.TokenStorage), new(repository.TokenRepository)),
-	wire.Bind(new(preferences.Store), new(repository.PreferencesRepository)),
+	wire.Bind(new(preferences.GitHubTokenStore), new(repository.GitHubTokensRepository)),
+	wire.Bind(new(preferences.HookStore), new(repository.HookRepository)),
+	wire.Bind(new(preferences.TokenProvider), new(*auth.Service)),
+	wire.Bind(new(preferences.WebhookURLBuilder), new(web.URLBuilder)),
+	wire.Bind(new(chat.CallbackURLBuilder), new(web.URLBuilder)),
 )
 
 func provideLogger(cfg *config.Config) (*zap.Logger, error) {
@@ -64,8 +71,18 @@ func provideAuthConfig(cfg *config.Config) (config.ResolvedAuthConfig, error) {
 	return *authCfg, nil
 }
 
-func provideGitHubService(cfg *config.Config, store preferences.Store) *preferences.GitHubService {
-	return preferences.NewGitHubService(cfg.GitHub, store)
+func provideGitHubService(
+	cfg *config.Config,
+	authSvc *auth.Service,
+	tokenStore preferences.GitHubTokenStore,
+	hookStore preferences.HookStore,
+	urlBuilder web.URLBuilder,
+) *preferences.GitHubService {
+	return preferences.NewGitHubService(cfg.GitHub, urlBuilder, authSvc, hookStore, tokenStore)
+}
+
+func provideURLBuilder(cfg *config.Config) web.URLBuilder {
+	return web.NewURLBuilder(cfg.HTTP.BaseURL)
 }
 
 func provideRedis(cfg *config.Config) (redis.Cmdable, error) {

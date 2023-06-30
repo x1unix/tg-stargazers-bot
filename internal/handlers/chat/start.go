@@ -13,7 +13,8 @@ import (
 var welcomeMessage []byte
 
 type TokenProvider interface {
-	CreateUserToken(ctx context.Context, subject auth.UserID) (string, error)
+	// ProvideUserToken provides user auth token.
+	ProvideUserToken(ctx context.Context, subject auth.UserID) (string, error)
 }
 
 type StartCommandHandler struct{}

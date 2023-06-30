@@ -27,7 +27,7 @@ func (h DebugHandler) HandleNewToken(c echo.Context) error {
 	}
 
 	ctx := c.Request().Context()
-	token, err := h.authSvc.CreateUserToken(ctx, userID)
+	token, err := h.authSvc.ProvideUserToken(ctx, userID)
 	if err != nil {
 		return err
 	}

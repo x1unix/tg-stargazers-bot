@@ -22,19 +22,14 @@ func NewTokenRepository(redis redis.Cmdable) TokenRepository {
 	return TokenRepository{redis: redis}
 }
 
-func (t TokenRepository) TokenExists(ctx context.Context, token string, subjectID auth.UserID) (bool, error) {
+func (t TokenRepository) GetToken(ctx context.Context, subjectID auth.UserID) (string, error) {
 	key := formatKey(tokenKeyPrefix, subjectID)
-	gotToken, err := t.redis.Get(ctx, key).Result()
+	token, err := t.redis.Get(ctx, key).Result()
 	if errors.Is(err, redis.Nil) {
-		return false, nil
+		return "", auth.ErrTokenNotExists
 	}
 
-	if err != nil {
-		return false, err
-	}
-
-	ok := token == gotToken
-	return ok, nil
+	return token, err
 }
 
 func (t TokenRepository) AddToken(ctx context.Context, token string, subjectID auth.UserID) error {

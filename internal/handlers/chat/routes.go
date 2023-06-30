@@ -1,7 +1,6 @@
 package chat
 
 import (
-	"github.com/x1unix/tg-stargazers-bot/internal/config"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/bot"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/preferences"
 	"go.uber.org/zap"
@@ -9,7 +8,7 @@ import (
 
 func NewHandlers(
 	log *zap.Logger,
-	cfg *config.Config,
+	urlBuilder CallbackURLBuilder,
 	githubSvc *preferences.GitHubService,
 	tokenProvider TokenProvider,
 ) bot.Handlers {
@@ -18,8 +17,8 @@ func NewHandlers(
 		Start:            NewStartCommandHandler(),
 		LifecycleHandler: NewLifecycleHandler(log),
 		Commands: bot.CommandHandlers{
-			"auth": NewAuthCommandHandler(logger, cfg.HTTP, githubSvc, tokenProvider),
-			"add":  NewAddRepoCommand(githubSvc),
+			"auth": NewAuthCommandHandler(logger, urlBuilder, githubSvc, tokenProvider),
+			"add":  NewAddRepoCommand(logger, githubSvc),
 		},
 	}
 }

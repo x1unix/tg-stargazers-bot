@@ -37,3 +37,13 @@ func BuildAuthCallbackURL(baseUrl *url.URL, token string) *url.URL {
 	newUrl.RawQuery = params.Encode()
 	return newUrl
 }
+
+func BuildWebhookUrl(baseUrl *url.URL, token string) *url.URL {
+	params := url.Values{
+		tokenQueryParam: []string{token},
+	}
+
+	newUrl := baseUrl.JoinPath(githubWebHookPath)
+	newUrl.RawQuery = params.Encode()
+	return newUrl
+}

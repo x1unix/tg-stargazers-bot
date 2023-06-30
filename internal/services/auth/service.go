@@ -17,8 +17,13 @@ var ErrInvalidToken = errors.New("invalid token")
 var jwtSignMethod = jwt.SigningMethodRS256
 
 type TokenStorage interface {
-	TokenExists(ctx context.Context, tokenID string, subjectID UserID) (bool, error)
+	// AddToken stores a new user token or overwrites existing one.
 	AddToken(ctx context.Context, tokenID string, subjectID UserID) error
+
+	// GetToken returns stored token.
+	//
+	// Return ErrTokenNotExists if token doesn't exist.
+	GetToken(ctx context.Context, subjectID UserID) (string, error)
 }
 
 type JWTSignParams struct {
@@ -28,8 +33,8 @@ type JWTSignParams struct {
 
 type Service struct {
 	log        *zap.Logger
-	tokenStore TokenStorage
 	cfg        config.ResolvedAuthConfig
+	tokenStore TokenStorage
 }
 
 func NewService(log *zap.Logger, cfg config.ResolvedAuthConfig, tokenStore TokenStorage) *Service {
@@ -43,31 +48,58 @@ func (svc Service) JWTSignParams() JWTSignParams {
 	}
 }
 
-func (svc Service) CreateUserToken(ctx context.Context, subject UserID) (string, error) {
-	claims := NewClaims(subject)
-	token := jwt.NewWithClaims(jwtSignMethod, claims)
-	signedToken, err := token.SignedString(svc.cfg.JWTPrivateKey)
-	if err != nil {
-		return "", fmt.Errorf("failed to sign token: %w", err)
-	}
-
-	if err := svc.tokenStore.AddToken(ctx, claims.ID, subject); err != nil {
-		return "", fmt.Errorf("failed to save token: %w", err)
-	}
-
-	return signedToken, nil
-}
-
+// ValidateToken checks if provided token is correct.
 func (svc Service) ValidateToken(ctx context.Context, token *Claims) (UserID, error) {
 	userID, err := ParseUserID(token.Subject)
 	if err != nil {
 		return 0, fmt.Errorf("invalid token subject: %w", err)
 	}
 
-	ok, err := svc.tokenStore.TokenExists(ctx, token.ID, userID)
-	if !ok {
+	gotToken, err := svc.tokenStore.GetToken(ctx, userID)
+	if errors.Is(err, ErrTokenNotExists) {
+		return 0, ErrInvalidToken
+	}
+
+	if err != nil {
+		return 0, err
+	}
+
+	if gotToken != token.ID {
 		return 0, ErrInvalidToken
 	}
 
 	return userID, nil
+}
+
+// ProvideUserToken returns stored user token or creates a new one.
+func (svc Service) ProvideUserToken(ctx context.Context, subject UserID) (string, error) {
+	token, err := svc.tokenStore.GetToken(ctx, subject)
+	if errors.Is(err, ErrTokenNotExists) {
+		token, err = svc.generateNewToken(ctx, subject)
+	}
+	if err != nil {
+		return "", err
+	}
+
+	claims := NewClaims(subject, token)
+	return svc.buildToken(claims)
+}
+
+func (svc Service) generateNewToken(ctx context.Context, subject UserID) (string, error) {
+	tokenID := NewTokenID()
+	if err := svc.tokenStore.AddToken(ctx, tokenID, subject); err != nil {
+		return "", fmt.Errorf("failed to save token: %w", err)
+	}
+
+	return tokenID, nil
+}
+
+func (svc Service) buildToken(claims Claims) (string, error) {
+	token := jwt.NewWithClaims(jwtSignMethod, claims)
+	signedToken, err := token.SignedString(svc.cfg.JWTPrivateKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign token: %w", err)
+	}
+
+	return signedToken, err
 }
