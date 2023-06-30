@@ -4,7 +4,7 @@ COPY . /tmp/work
 WORKDIR /tmp/work
 RUN go build \
     -o stargazers-server \
-    -ldflags="-s -w -X 'github.com/x1unix/tg-stargazers-bot/internal/app.Version=$APP_VERISON'" \
+    -ldflags="-X 'github.com/x1unix/tg-stargazers-bot/internal/app.Version=$APP_VERSION'" \
     ./cmd/stargazers-server
 
 FROM alpine:3.18
@@ -12,6 +12,7 @@ RUN apk add --no-cache  \
     tzdata \
     ca-certificates \
     curl \
+    openssl \
     bash && \
     mkdir -p /opt/stargazers-bot
 
