@@ -37,9 +37,9 @@ func newHelpCommandHandler(commands map[string]CommandHandler) helpCommandHandle
 		sb.WriteString(" - ")
 		sb.WriteString(cmd.CommandDescription())
 		sb.WriteRune('\n')
-		sb.WriteString("/help - Shows this help")
 	}
 
+	sb.WriteString("/help - Shows this help")
 	return helpCommandHandler{
 		message: sb.String(),
 	}
