@@ -5,6 +5,9 @@ import (
 	"fmt"
 )
 
+// ErrUnsupported errors identifies that command is not supported or handler received invalid query.
+var ErrUnsupported = errors.New("invalid command or query")
+
 // ErrorResponse is error response that will be sent to a client.
 type ErrorResponse struct {
 	msg string

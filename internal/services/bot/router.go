@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -29,6 +30,14 @@ type RoutedEvent struct {
 	ChatID ChatID
 
 	*tgbotapi.Update
+}
+
+func (e RoutedEvent) NewResultWithMessage(text string, opts ...MessageOption) *RouteEventResult {
+	msg := tgbotapi.NewMessage(e.ChatID, text)
+	applyMessageOpts(&msg, opts)
+	return &RouteEventResult{
+		Message: msg,
+	}
 }
 
 // ChatLifecycleHandler handles bot start and stop events.
@@ -123,6 +132,11 @@ func (r Router) HandleBotEvent(ctx context.Context, e *tgbotapi.Update) (tgbotap
 	}
 
 	result, err := handler.HandleBotEvent(ctx, event)
+	if errors.Is(err, ErrUnsupported) {
+		// Pass invocation to default handler if command received invalid parameters
+		result, err = r.handlers.Default.HandleBotEvent(ctx, event)
+	}
+
 	if err != nil {
 		return nil, err
 	}

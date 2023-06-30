@@ -30,17 +30,19 @@ func (cmd AddRepoCommand) HandleBotEvent(ctx context.Context, e bot.RoutedEvent)
 	}
 
 	if len(repos) == 0 {
-		msg := tgbotapi.NewMessage(e.ChatID, "No available repositories to track.")
-		return &bot.RouteEventResult{Message: msg}, nil
+		return e.NewResultWithMessage("No available repositories to track."), nil
 	}
 
-	msg := tgbotapi.NewMessage(e.ChatID, "Please choose a repository you'd like to track")
-
-	msg.ReplyMarkup = tgbotapi.NewOneTimeReplyKeyboard(
+	markup := tgbotapi.NewOneTimeReplyKeyboard(
 		buildReposKeyboard(repos)...,
 	)
 
-	return &bot.RouteEventResult{Message: msg}, nil
+	result := e.NewResultWithMessage(
+		"Please choose a repository you'd like to track",
+		bot.WithReplyMarkup(markup),
+	)
+	result.NextMessageHandler = NewTrackRepoMessageHandler(cmd.reposMgr)
+	return result, nil
 }
 
 func buildReposKeyboard(repos []string) [][]tgbotapi.KeyboardButton {

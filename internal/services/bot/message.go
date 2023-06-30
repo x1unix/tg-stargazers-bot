@@ -35,3 +35,10 @@ func WithParseMode(mode ParseMode) MessageOption {
 		cfg.ParseMode = mode
 	}
 }
+
+// WithReplyMarkup adds reply markup to the message.
+func WithReplyMarkup(markup any) MessageOption {
+	return func(cfg *tgbotapi.MessageConfig) {
+		cfg.ReplyMarkup = markup
+	}
+}
