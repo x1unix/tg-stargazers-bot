@@ -17,8 +17,10 @@ func NewHandlers(
 		Start:            NewStartCommandHandler(),
 		LifecycleHandler: NewLifecycleHandler(log),
 		Commands: bot.CommandHandlers{
-			"auth": NewAuthCommandHandler(logger, urlBuilder, githubSvc, tokenProvider),
-			"add":  NewAddRepoCommand(logger, githubSvc),
+			"auth":   NewAuthCommandHandler(logger, urlBuilder, githubSvc, tokenProvider),
+			"add":    NewAddRepoCommand(logger, githubSvc),
+			"remove": NewRemoveRepoCommand(log, githubSvc),
+			"list":   NewListRepoCommand(githubSvc),
 		},
 	}
 }

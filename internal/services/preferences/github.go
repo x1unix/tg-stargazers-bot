@@ -147,6 +147,10 @@ func (svc GitHubService) GetUntrackedRepositories(ctx context.Context, uid auth.
 	), nil
 }
 
+func (svc GitHubService) GetTrackedRepositories(ctx context.Context, uid auth.UserID) ([]string, error) {
+	return svc.hookStore.GetHookRepositories(ctx, uid)
+}
+
 // TrackRepository installs webhook on GitHub repository.
 func (svc GitHubService) TrackRepository(ctx context.Context, uid auth.UserID, repo string) error {
 	owner, repoName, err := splitOwnerAndRepo(repo)

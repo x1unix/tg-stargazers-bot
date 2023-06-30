@@ -3,16 +3,20 @@ package chat
 import (
 	"context"
 	"errors"
-	"github.com/x1unix/tg-stargazers-bot/internal/services/preferences"
-	"go.uber.org/zap"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/x1unix/tg-stargazers-bot/internal/services/auth"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/bot"
+	"github.com/x1unix/tg-stargazers-bot/internal/services/preferences"
+	"go.uber.org/zap"
 )
 
 type RepositoryManager interface {
 	TrackRepository(ctx context.Context, uid bot.ChatID, repo string) error
 	GetUntrackedRepositories(ctx context.Context, uid bot.ChatID) ([]string, error)
+	GetTrackedRepositories(ctx context.Context, uid auth.UserID) ([]string, error)
+	UntrackRepository(ctx context.Context, uid auth.UserID, repo string) error
+	TruncateUserData(ctx context.Context, uid auth.UserID) error
 }
 
 type AddRepoCommand struct {
