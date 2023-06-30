@@ -78,6 +78,10 @@ func NewServer(
 		e.GET("/auth/debug/info", debugHandler.HandleTestToken, authMiddleware, userTokenMw)
 	}
 
+	e.GET("/api/health", func(c echo.Context) error {
+		return c.String(http.StatusOK, "OK")
+	})
+
 	e.HTTPErrorHandler = func(err error, c echo.Context) {
 		if _, ok := err.(*echo.HTTPError); !ok {
 			logWithContext(logger, c).
