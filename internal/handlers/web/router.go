@@ -81,6 +81,7 @@ func NewServer(
 			"version": cfg.Version,
 		})
 	})
+	e.Static("/", cfg.StaticDir)
 
 	e.HTTPErrorHandler = func(err error, c echo.Context) {
 		if _, ok := err.(*echo.HTTPError); !ok {
