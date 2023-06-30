@@ -6,18 +6,23 @@ import (
 	"go.uber.org/zap"
 )
 
+type TokenManager interface {
+	TokenProvider
+	TokenRemover
+}
+
 func NewHandlers(
 	log *zap.Logger,
 	urlBuilder CallbackURLBuilder,
 	githubSvc *preferences.GitHubService,
-	tokenProvider TokenProvider,
+	tokenMgr TokenManager,
 ) bot.Handlers {
 	logger := log.With(zap.String("tag", "bot"))
 	return bot.Handlers{
 		Start:            NewStartCommandHandler(),
-		LifecycleHandler: NewLifecycleHandler(log),
+		LifecycleHandler: NewLifecycleHandler(log, tokenMgr, githubSvc),
 		Commands: bot.CommandHandlers{
-			"auth":   NewAuthCommandHandler(logger, urlBuilder, githubSvc, tokenProvider),
+			"auth":   NewAuthCommandHandler(logger, urlBuilder, githubSvc, tokenMgr),
 			"add":    NewAddRepoCommand(logger, githubSvc),
 			"remove": NewRemoveRepoCommand(log, githubSvc),
 			"list":   NewListRepoCommand(githubSvc),

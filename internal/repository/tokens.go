@@ -36,3 +36,12 @@ func (t TokenRepository) AddToken(ctx context.Context, token string, subjectID a
 	key := formatKey(tokenKeyPrefix, subjectID)
 	return t.redis.Set(ctx, key, token, 0).Err()
 }
+
+func (t TokenRepository) RemoveToken(ctx context.Context, subjectID auth.UserID) error {
+	key := formatKey(tokenKeyPrefix, subjectID)
+	err := t.redis.Del(ctx, key).Err()
+	if errors.Is(err, redis.Nil) {
+		return nil
+	}
+	return err
+}

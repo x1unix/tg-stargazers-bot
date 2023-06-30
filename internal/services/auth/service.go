@@ -24,6 +24,9 @@ type TokenStorage interface {
 	//
 	// Return ErrTokenNotExists if token doesn't exist.
 	GetToken(ctx context.Context, subjectID UserID) (string, error)
+
+	// RemoveToken removes user token from storage.
+	RemoveToken(ctx context.Context, subjectID UserID) error
 }
 
 type JWTSignParams struct {
@@ -83,6 +86,10 @@ func (svc Service) ProvideUserToken(ctx context.Context, subject UserID) (string
 
 	claims := NewClaims(subject, token)
 	return svc.buildToken(claims)
+}
+
+func (svc Service) RemoveUserToken(ctx context.Context, subject UserID) error {
+	return svc.tokenStore.RemoveToken(ctx, subject)
 }
 
 func (svc Service) generateNewToken(ctx context.Context, subject UserID) (string, error) {
