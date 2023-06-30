@@ -1,10 +1,12 @@
 package web
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 
+	"github.com/google/go-github/v53/github"
 	"github.com/labstack/echo/v4"
 	"github.com/x1unix/tg-stargazers-bot/internal/config"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/feedback"
@@ -66,16 +68,27 @@ func (h GitHubHandler) HandleWebhook(c echo.Context) error {
 }
 
 func (h GitHubHandler) dumpRequest(c echo.Context) error {
+	user, err := getUserInfo(c)
+	if err != nil {
+		return err
+	}
+
 	req := c.Request()
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err)
 	}
-
 	defer req.Body.Close()
-	h.log.Debug("request",
-		zap.String("path", req.URL.RawPath),
-		zap.ByteString("body", body),
-		zap.Any("headers", req.Header))
+
+	event := new(github.StarEvent)
+	if err := json.Unmarshal(body, &event); err != nil {
+		logWithContext(h.log, c).Error("unexpected request body",
+			zap.ByteString("body", body),
+			zap.Any("headers", req.Header),
+		)
+		return WrapHTTPError(http.StatusBadRequest, err)
+	}
+
+	h.notificationSvc.NotifyStarEvent(user.UserID, event)
 	return nil
 }

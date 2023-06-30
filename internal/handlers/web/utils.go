@@ -2,7 +2,6 @@ package web
 
 import (
 	"context"
-	"net/url"
 
 	"github.com/labstack/echo/v4"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/auth"
@@ -25,25 +24,4 @@ func logWithContext(l *zap.Logger, c echo.Context) *zap.Logger {
 		zap.String("url", c.Request().RequestURI),
 		zap.String("ua", c.Request().UserAgent()),
 	)
-}
-
-// BuildAuthCallbackURL builds GitHub post-auth callback URL.
-func BuildAuthCallbackURL(baseUrl *url.URL, token string) *url.URL {
-	params := url.Values{
-		tokenQueryParam: []string{token},
-	}
-
-	newUrl := baseUrl.JoinPath(githubAuthPath)
-	newUrl.RawQuery = params.Encode()
-	return newUrl
-}
-
-func BuildWebhookUrl(baseUrl *url.URL, token string) *url.URL {
-	params := url.Values{
-		tokenQueryParam: []string{token},
-	}
-
-	newUrl := baseUrl.JoinPath(githubWebHookPath)
-	newUrl.RawQuery = params.Encode()
-	return newUrl
 }

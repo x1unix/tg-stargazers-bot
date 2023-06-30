@@ -1,7 +1,6 @@
 package web
 
 import (
-	"github.com/x1unix/tg-stargazers-bot/internal/services/feedback"
 	"net/http"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -11,6 +10,7 @@ import (
 	"github.com/x1unix/tg-stargazers-bot/internal/config"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/auth"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/bot"
+	"github.com/x1unix/tg-stargazers-bot/internal/services/feedback"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/preferences"
 	"go.uber.org/zap"
 )
