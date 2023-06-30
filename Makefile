@@ -2,7 +2,7 @@ GO ?= go
 WIRE ?= wire
 
 DOCKERFILE=./Dockerfile
-IMG_NAME ?= x1unix/tg-startracker
+IMG_NAME ?= x1unix/tg-stargazers-bot
 ENV_FILE ?= .env
 
 .PHONY: run
