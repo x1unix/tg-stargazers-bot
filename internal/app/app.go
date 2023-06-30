@@ -3,16 +3,21 @@ package app
 import (
 	"context"
 	"errors"
-	"github.com/x1unix/tg-stargazers-bot/internal/services/feedback"
 	"net/http"
 
 	"github.com/x1unix/tg-stargazers-bot/internal/config"
 	"github.com/x1unix/tg-stargazers-bot/internal/handlers/web"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/auth"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/bot"
+	"github.com/x1unix/tg-stargazers-bot/internal/services/feedback"
 	"github.com/x1unix/tg-stargazers-bot/internal/services/preferences"
 	"go.uber.org/zap"
 )
+
+// Version is application version.
+//
+// Value will be supplied by linker during build.
+var Version = "1.0.0-snapshot"
 
 type Service struct {
 	log           *zap.Logger
@@ -47,6 +52,7 @@ func (svc Service) Start(ctx context.Context) error {
 
 	srvCfg := web.ServerConfig{
 		HTTPConfig: svc.cfg.HTTP,
+		Version:    Version,
 		Env:        svc.cfg.Log.Environment,
 		WebhookSecrets: web.WebhookSecrets{
 			Telegram: svc.cfg.Bot.WebHookSecret,

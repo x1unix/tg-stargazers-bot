@@ -8,7 +8,7 @@ import (
 )
 
 type TokenRemover interface {
-	RemoveToken(ctx context.Context, subjectID bot.ChatID) error
+	RemoveUserToken(ctx context.Context, subjectID bot.ChatID) error
 }
 
 type LifecycleHandler struct {
@@ -43,7 +43,7 @@ func (l LifecycleHandler) HandleUserLeave(ctx context.Context, e bot.RoutedEvent
 		zap.String("username", e.FromChat().UserName),
 		zap.Int64("chat_id", e.ChatID),
 	)
-	if err := l.tokenRemover.RemoveToken(ctx, e.ChatID); err != nil {
+	if err := l.tokenRemover.RemoveUserToken(ctx, e.ChatID); err != nil {
 		l.log.Error("failed to remove saved auth token",
 			zap.String("username", e.FromChat().UserName),
 			zap.Int64("chat_id", e.ChatID),

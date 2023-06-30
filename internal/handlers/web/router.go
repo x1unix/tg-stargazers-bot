@@ -29,6 +29,7 @@ type WebhookSecrets struct {
 
 type ServerConfig struct {
 	config.HTTPConfig
+	Version        string
 	Env            config.Environment
 	WebhookSecrets WebhookSecrets
 }
@@ -72,14 +73,13 @@ func NewServer(
 	e.GET(githubAuthPath, githubHandler.HandleLogin, authMiddleware, userTokenMw)
 	e.POST(githubWebHookPath, githubHandler.HandleWebhook, authMiddleware, userTokenMw)
 
-	if !cfg.Env.IsProduction() {
-		debugHandler := NewDebugHandler(logger, cfg, authSvc)
-		e.GET("/auth/debug/login", debugHandler.HandleNewToken)
-		e.GET("/auth/debug/info", debugHandler.HandleTestToken, authMiddleware, userTokenMw)
-	}
-
 	e.GET("/api/health", func(c echo.Context) error {
 		return c.String(http.StatusOK, "OK")
+	})
+	e.GET("/api/version", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]any{
+			"version": cfg.Version,
+		})
 	})
 
 	e.HTTPErrorHandler = func(err error, c echo.Context) {
