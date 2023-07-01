@@ -29,6 +29,6 @@ ENV HTTP_STATIC_DIR '/opt/stargazers-bot/public'
 HEALTHCHECK --interval=30s --timeout=3s \
   CMD curl -f http://localhost:8080/ || exit 1
 
-EXPOSE 80
+EXPOSE 8080
 
 ENTRYPOINT /opt/stargazers-bot/stargazers-server
