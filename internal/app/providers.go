@@ -65,7 +65,7 @@ func provideBotConfig(cfg *config.Config) config.BotConfig {
 func provideAuthConfig(cfg *config.Config) (config.ResolvedAuthConfig, error) {
 	authCfg, err := cfg.Auth.ResolvedAuthConfig()
 	if err != nil {
-		return config.ResolvedAuthConfig{}, nil
+		return config.ResolvedAuthConfig{}, err
 	}
 
 	return *authCfg, nil

@@ -47,7 +47,7 @@ func NewService(
 }
 
 func (svc Service) Start(ctx context.Context) error {
-	svc.log.Info("starting the service...")
+	svc.log.Info("starting the service...", zap.String("version", Version))
 	defer svc.log.Info("service stopped, goodbye")
 
 	srvCfg := web.ServerConfig{

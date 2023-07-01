@@ -30,6 +30,10 @@ func (cfg AuthConfig) ResolvedAuthConfig() (*ResolvedAuthConfig, error) {
 		return nil, err
 	}
 
+	if privKey == nil || pubKey == nil {
+		return nil, errors.New("invalid JWT config")
+	}
+
 	return &ResolvedAuthConfig{
 		JWTPublicKey:  pubKey,
 		JWTPrivateKey: privKey,
