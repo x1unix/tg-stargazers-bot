@@ -20,6 +20,8 @@ var (
 	ErrHookNotExists = errors.New("hook not exists")
 )
 
+const repoPageSize = 60
+
 type Hooks map[string]int64
 
 type HookStore interface {
@@ -121,12 +123,7 @@ func (svc GitHubService) getOAuthToken(ctx context.Context, uid auth.UserID) (*o
 
 // GetUntrackedRepositories returns a list of available untracked repositories.
 func (svc GitHubService) GetUntrackedRepositories(ctx context.Context, uid auth.UserID) ([]string, error) {
-	client, err := svc.getClient(ctx, uid)
-	if err != nil {
-		return nil, err
-	}
-
-	repos, _, err := client.Repositories.List(ctx, "", &github.RepositoryListOptions{})
+	repos, err := svc.fetchUserRepos(ctx, uid)
 	if err != nil {
 		//github.ErrorResponse
 		return nil, err
@@ -145,6 +142,39 @@ func (svc GitHubService) GetUntrackedRepositories(ctx context.Context, uid auth.
 			return *r.FullName
 		},
 	), nil
+}
+
+func (svc GitHubService) fetchUserRepos(ctx context.Context, uid auth.UserID) ([]*github.Repository, error) {
+	client, err := svc.getClient(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	opts := &github.RepositoryListOptions{
+		Affiliation: "owner",
+		Sort:        "created",
+		Direction:   "desc",
+		ListOptions: github.ListOptions{
+			PerPage: repoPageSize,
+		},
+	}
+
+	results := make([]*github.Repository, 0, repoPageSize)
+	for {
+		repos, resp, err := client.Repositories.List(ctx, "", opts)
+		if err != nil {
+			return nil, err
+		}
+
+		results = append(results, repos...)
+		if resp.NextPage == 0 {
+			break
+		}
+
+		opts.Page = resp.NextPage
+	}
+
+	return results, nil
 }
 
 func (svc GitHubService) GetTrackedRepositories(ctx context.Context, uid auth.UserID) ([]string, error) {
